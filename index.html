@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smart Energy Meter</title>
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial,Helvetica,sans-serif;
+background:linear-gradient(135deg,#000,#4B0082);
+color:#fff;
+}
+
+/* Light mode */
+
+body.light{
+background:linear-gradient(135deg,#f0f0f0,#d0d0ff);
+color:#111;
+}
+
+h1{
+text-align:center;
+font-size:22px;
+padding:15px;
+margin:0;
+}
+
+.alert{
+text-align:center;
+color:#ff5252;
+font-weight:bold;
+}
+
+/* Grid */
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+padding:12px;
+}
+
+/* Cards */
+
+.card{
+background:rgba(255,255,255,0.12);
+border-radius:15px;
+padding:18px 10px;
+text-align:center;
+}
+
+.card.light{
+background:rgba(0,0,0,0.05);
+}
+
+.icon{
+font-size:24px;
+margin-bottom:6px;
+}
+
+.value{
+font-size:20px;
+font-weight:bold;
+margin-top:4px;
+}
+
+/* Buttons */
+
+.btn{
+display:block;
+width:92%;
+margin:12px auto;
+padding:14px;
+border:none;
+border-radius:12px;
+background:#2ecc71;
+color:#fff;
+font-size:16px;
+font-weight:bold;
+cursor:pointer;
+}
+
+/* Theme button */
+
+#themeBtn{
+position:fixed;
+top:10px;
+right:10px;
+padding:8px 12px;
+border:none;
+border-radius:10px;
+background:#ff9800;
+color:#fff;
+cursor:pointer;
+}
+
+/* Mobile optimization */
+
+@media(max-width:480px){
+
+h1{
+font-size:20px;
+}
+
+.icon{
+font-size:22px;
+}
+
+.value{
+font-size:18px;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1><i class="fas fa-bolt"></i> AC Energy Meter</h1>
+
+<div id="alertBox" class="alert"></div>
+
+<button id="themeBtn">🌙 Dark / Light</button>
+
+<div class="grid">
+
+<div class="card">
+<i class="fas fa-bolt icon"></i>
+<div>Voltage</div>
+<div class="value" id="voltage">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-wave-square icon"></i>
+<div>Current</div>
+<div class="value" id="current">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-plug icon"></i>
+<div>Power</div>
+<div class="value" id="power">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-battery-full icon"></i>
+<div>Daily Energy</div>
+<div class="value" id="daily">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-calendar-alt icon"></i>
+<div>Monthly</div>
+<div class="value" id="monthly">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-coins icon"></i>
+<div>Daily Bill</div>
+<div class="value" id="dailybill">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-money-bill icon"></i>
+<div>Monthly Bill</div>
+<div class="value" id="bill">--</div>
+</div>
+
+<div class="card">
+<i class="fas fa-clock icon"></i>
+<div>Time</div>
+<div class="value" id="ntptime">--</div>
+</div>
+
+</div>
+
+<button class="btn" onclick="location.href='energy.csv'">
+⬇ Download CSV
+</button>
+
+<button class="btn" onclick="generatePDF()">
+📄 Generate PDF
+</button>
+
+<script>
+
+/* GitHub JSON data */
+
+const dataURL="https://raw.githubusercontent.com/USERNAME/energy-meter/main/energy.json";
+
+/* Theme toggle */
+
+const themeBtn=document.getElementById("themeBtn");
+
+if(localStorage.getItem("theme")=="light"){
+document.body.classList.add("light");
+document.querySelectorAll(".card").forEach(c=>c.classList.add("light"));
+}
+
+themeBtn.onclick=()=>{
+document.body.classList.toggle("light");
+document.querySelectorAll(".card").forEach(c=>c.classList.toggle("light"));
+
+localStorage.setItem("theme",
+document.body.classList.contains("light")?"light":"dark");
+};
+
+/* Electricity bill */
+
+function calculateBill(e){
+
+if(e<=100) return e*5;
+if(e<=200) return 100*5+(e-100)*6;
+if(e<=500) return 100*5+100*6+(e-200)*7;
+
+return 100*5+100*6+300*7+(e-500)*8;
+
+}
+
+/* Update dashboard */
+
+function update(){
+
+fetch(dataURL)
+.then(r=>r.json())
+.then(d=>{
+
+voltage.innerHTML=d.voltage+" V";
+current.innerHTML=d.current+" A";
+power.innerHTML=d.power+" W";
+
+daily.innerHTML=d.daily+" kWh";
+monthly.innerHTML=d.monthly+" kWh";
+
+dailybill.innerHTML="₹"+(d.daily*6.5).toFixed(2);
+
+bill.innerHTML="₹"+calculateBill(d.monthly).toFixed(2);
+
+ntptime.innerHTML=new Date().toLocaleString();
+
+/* Alerts */
+
+alertBox.innerHTML="";
+
+if(d.voltage>250) alertBox.innerHTML+="⚠ Over Voltage ";
+if(d.current>10) alertBox.innerHTML+="⚠ Over Current ";
+if(d.power>2000) alertBox.innerHTML+="⚠ Over Load ";
+
+});
+
+}
+
+/* Auto refresh */
+
+setInterval(update,3000);
+
+update();
+
+/* PDF bill */
+
+async function generatePDF(){
+
+const data = await fetch(dataURL).then(r=>r.json());
+
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+
+const rate=6.5;
+const units=parseFloat(data.monthly);
+
+const energy=units*rate;
+const gst=energy*0.09;
+const total=energy+gst+gst;
+
+let y=20;
+
+doc.text("SMART ENERGY METER BILL",50,y); y+=10;
+
+doc.text("Units : "+units.toFixed(2)+" kWh",10,y); y+=8;
+doc.text("Rate  : ₹"+rate+"/unit",10,y); y+=8;
+doc.text("Energy Charge : ₹"+energy.toFixed(2),10,y); y+=8;
+
+doc.text("CGST 9% : ₹"+gst.toFixed(2),10,y); y+=8;
+doc.text("SGST 9% : ₹"+gst.toFixed(2),10,y); y+=8;
+
+doc.text("Total Bill : ₹"+total.toFixed(2),10,y); y+=10;
+
+doc.text("Voltage : "+data.voltage+" V",10,y); y+=6;
+doc.text("Current : "+data.current+" A",10,y); y+=6;
+doc.text("Power   : "+data.power+" W",10,y); y+=6;
+
+doc.save("electricity_bill.pdf");
+
+}
+
+</script>
+
+</body>
+
+</html>
