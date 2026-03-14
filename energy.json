@@ -2,5 +2,7 @@
 "voltage":0,
 "current":0,
 "power":0,
-"energy":0
+"energy":0,
+"over_voltage":true,
+"over_current":true
 }
